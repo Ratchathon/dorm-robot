@@ -1,0 +1,25 @@
+# Render Blueprint: the dorm web app (admin, tenant links, calculator) - always online, free plan.
+# Database: a free Neon Postgres project (paste its connection string as DATABASE_URL).
+services:
+  - type: web
+    name: dorm-meter
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: cloud
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app_from_env --factory --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL       # Neon connection string, postgresql://...sslmode=require
+        sync: false
+      - key: ADMIN_PASSWORD     # password for /admin
+        sync: false
+      - key: DORM_NAME          # shown on every page
+        sync: false
+      - key: PUBLIC_URL         # e.g. https://dorm-meter.onrender.com  (used in tenant links and QR codes)
+        sync: false
+      - key: SECRET_KEY         # signs the admin login cookie
+        generateValue: true
+      - key: DEVICE_KEY         # copy this value into the robot's .env
+        generateValue: true
