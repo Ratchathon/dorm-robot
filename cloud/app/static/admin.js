@@ -39,6 +39,25 @@
     if (view === "readings") loadSummary();
   }
   document.querySelectorAll("[data-view]").forEach((t) => t.addEventListener("click", () => show(t.dataset.view)));
+
+  // mobile burger menu (only visible at <= 820px)
+  const side = document.querySelector(".side");
+  const menuBtn = $("menuBtn");
+  let menuOpen = false;
+  function menu(action) {
+    const next = NavMenu.nextMenuState(menuOpen, action);
+    if (next === menuOpen) return;
+    menuOpen = next;
+    side.classList.toggle("open", menuOpen);
+    menuBtn.setAttribute("aria-expanded", String(menuOpen));
+    menuBtn.setAttribute("aria-label", NavMenu.menuLabel(menuOpen));
+    if (!menuOpen && action === "escape") menuBtn.focus();
+  }
+  menuBtn.addEventListener("click", () => menu("toggle"));
+  $("navList").addEventListener("click", (e) => { if (e.target.closest(".nav")) menu("select"); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") menu("escape"); });
+  document.addEventListener("click", (e) => { if (!side.contains(e.target)) menu("outside"); });
+  window.matchMedia("(min-width: 821px)").addEventListener("change", (e) => { if (e.matches) menu("desktop"); });
   $("logout").addEventListener("click", async () => { await api("/api/admin/logout", { method: "POST" }); location.href = "/admin/login"; });
 
   // ---------------- readings ----------------
