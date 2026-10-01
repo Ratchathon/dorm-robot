@@ -65,7 +65,7 @@ uvicorn app.main:app_from_env --factory --host 0.0.0.0 --port 8000
 
 ```bash
 cd robot && python3 -m pytest -q && node --test tests/*.test.js     # 85 + 14
-cd cloud && python3 -m pytest -q && node --test tests/*.test.js     # 69 + 12
+cd cloud && python3 -m pytest -q && node --test tests/*.test.js     # 69 + 16
 ```
 
 ## เปลี่ยนจากโค้ดเดิม

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผู้ดูแลหอพัก · Teleoperated Cleaning Robot</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="adm">
+  <nav class="side" aria-label="เมนูหลัก">
+    <div class="side-top">
+      <div class="brand"><div class="logo" id="logo">ห</div><div><b id="dormName">หอพัก</b><span class="muted small">ผู้ดูแล</span></div></div>
+      <button class="burger" type="button" id="menuBtn" aria-expanded="false" aria-controls="navList" aria-label="เปิดเมนู">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path class="b-open" d="M4 7h16M4 12h16M4 17h16"/><path class="b-close" d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="nav-list" id="navList">
+    <button class="nav" type="button" data-view="readings" aria-current="page">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>ค่ามิเตอร์</button>
+    <button class="nav" type="button" data-view="rooms">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/></svg>ห้องและ QR</button>
+    <button class="nav" type="button" data-view="rates">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l8-8h8v8l-8 8z"/><circle cx="15.5" cy="8.5" r="1.2"/></svg>ราคาต่อหน่วย</button>
+    <button class="nav" type="button" data-view="disputes">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v10H9l-4 4z"/></svg>เรื่องแจ้ง<span class="badge" id="disputeCount" hidden></span></button>
+    <a class="nav" href="/calculator" target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/></svg>เครื่องคำนวณ</a>
+    <button class="nav" type="button" id="logout">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>ออกจากระบบ</button>
+    </div>
+    <div class="side-foot"><b>Teleoperated Cleaning Robot</b>เวอร์ชัน 2.0</div>
+  </nav>
+
+  <main class="main">
+    <section id="view-readings" class="stack">
+      <div class="head-row">
+        <div class="row">
+          <button class="btn round" type="button" id="prevPeriod" aria-label="เดือนก่อน">‹</button>
+          <h1 id="periodTitle">ค่ามิเตอร์</h1>
+          <button class="btn round" type="button" id="nextPeriod" aria-label="เดือนถัดไป">›</button>
+        </div>
+        <div class="row no-print">
+          <span class="muted small" id="rateLine"></span>
+          <button class="btn" type="button" id="exportCsv">ส่งออก CSV</button>
+          <button class="btn" type="button" id="print">พิมพ์</button>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="card kpi summary">
+          <span class="k"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg>ยอดรวมค่าน้ำค่าไฟ</span>
+          <span class="v" id="tTotal">฿0</span>
+          <span class="pill" id="tAvg">ยังไม่มีห้องที่ครบ</span>
+        </div>
+        <div class="card kpi soft"><span class="k">มิเตอร์น้ำ</span><span class="v" id="tWater">0</span><div class="bar"><i id="barWater"></i></div></div>
+        <div class="card kpi soft"><span class="k">มิเตอร์ไฟ</span><span class="v" id="tElec">0</span><div class="bar"><i id="barElec"></i></div></div>
+        <div class="card kpi alert"><span class="k">ต้องตรวจสอบ</span><span class="v" id="tReview">0</span><span class="note">เลขน้อยกว่าครั้งก่อน</span></div>
+      </div>
+
+      <div class="work">
+        <section class="stack">
+          <div class="chips no-print" role="group" aria-label="กรองห้อง" id="filters"></div>
+          <div class="room-cards" id="roomCards"></div>
+        </section>
+        <aside class="card panel" id="panel" aria-live="polite">
+          <div class="muted small">เลือกมิเตอร์บนการ์ดห้องเพื่อดูภาพ แก้เลข หรือเพิ่มค่าเอง</div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-rooms" class="stack" hidden>
+      <div class="head-row">
+        <div><h1>ห้องและ QR</h1><div class="sub">ลูกบ้านเปิดลิงก์หรือสแกน QR เพื่อดูภาพมิเตอร์และยอดของห้องตัวเอง ไม่ต้องสมัครสมาชิก</div></div>
+        <form class="row" id="addRoom">
+          <label class="sr-only" for="newRoom">เลขห้องใหม่</label>
+          <input class="input" id="newRoom" placeholder="เลขห้อง เช่น 104" maxlength="10" required>
+          <button class="btn primary" type="submit">เพิ่มห้อง</button>
+        </form>
+      </div>
+      <div class="work">
+        <div class="card" id="roomList"></div>
+        <aside class="card panel" id="roomPanel"><div class="muted small">เลือกห้องเพื่อดู QR และจัดการลิงก์</div></aside>
+      </div>
+    </section>
+
+    <section id="view-rates" class="stack" hidden>
+      <div class="head-row"><div><h1>ราคาต่อหน่วย</h1><div class="sub">ตามสัญญาเช่า ราคาใหม่มีผลกับรอบเดือนนี้เป็นต้นไป</div></div></div>
+      <div class="work">
+        <form class="card pad stack" id="rateForm">
+          <div class="row">
+            <div class="field grow"><label for="rateElec">ค่าไฟ (บาท/หน่วย)</label><input class="input big" id="rateElec" inputmode="decimal" required></div>
+            <div class="field grow"><label for="rateWater">ค่าน้ำ (บาท/หน่วย)</label><input class="input big" id="rateWater" inputmode="decimal" required></div>
+          </div>
+          <button class="btn primary" type="submit">บันทึกราคา</button>
+        </form>
+        <aside class="card panel"><h2>ประวัติราคา</h2><ul class="hist" id="rateHistory"></ul></aside>
+      </div>
+    </section>
+
+    <section id="view-disputes" class="stack" hidden>
+      <div class="head-row"><h1>เรื่องที่ลูกบ้านแจ้ง</h1></div>
+      <div class="stack" id="disputeList"></div>
+    </section>
+  </main>
+</div>
+<script src="/static/common.js"></script>
+<script src="/static/summary-logic.js"></script><script src="/static/nav-menu.js"></script>
+<script src="/static/admin.js"></script>
+</body>
+</html>
