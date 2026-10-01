@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teleoperated Cleaning Robot</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/cockpit.css">
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div>
+      <h1>Teleoperated Cleaning Robot</h1>
+      <div class="sub">หุ่นทำความสะอาดและจดมิเตอร์</div>
+    </div>
+    <div class="pills">
+      <span class="pill" id="motionPill" aria-live="polite"><span class="accent" id="motionArrow">·</span><span id="motionText">หยุดนิ่ง</span><span class="sep" id="tiltSep" hidden>|</span><span id="tiltText"></span></span>
+      <span class="pill pending" id="connPill"><span class="dot"></span><span id="connText">กำลังเชื่อมต่อ…</span></span>
+      <span class="pill">รอส่ง <b id="pendingCount">0</b></span>
+      <a id="cloudLink" class="pill link" href="#" target="_blank" rel="noopener" hidden>ระบบหอพัก →</a>
+    </div>
+  </header>
+
+  <div class="video">
+    <div class="scene" id="scene"><img id="video" src="/video_feed" alt="ภาพสดจากกล้องหุ่นยนต์"></div>
+    <div class="roi" aria-hidden="true"></div>
+    <div class="hud">
+      <span class="chip"><span class="live-dot"></span><span class="tech">LIVE</span></span>
+      <span class="chip"><span class="tech">TILT <b id="tiltVal">90</b>°</span><span class="tech">BLOWER <b id="blowerVal">OFF</b></span></span>
+    </div>
+    <div class="zoom" role="group" aria-label="ซูมภาพ">
+      <button type="button" data-zoom="1" aria-pressed="true">1×</button>
+      <button type="button" data-zoom="2" aria-pressed="false">2×</button>
+    </div>
+    <div class="banner" id="estopBanner" hidden>หยุดฉุกเฉินแล้ว · ล้อและพัดลมหยุด กดปุ่มใดก็ได้เพื่อใช้งานต่อ</div>
+  </div>
+
+  <div class="controls">
+    <button id="blowerBtn" class="ctl fan" type="button" role="switch" aria-checked="false">
+      <span class="fan-label"><span>พัดลมดูดฝุ่น</span><small>กด E</small></span>
+      <span class="switch" aria-hidden="true"><span></span></span>
+    </button>
+    <button id="captureBtn" class="ctl primary" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <span>ถ่ายภาพมิเตอร์</span><kbd>Space</kbd>
+    </button>
+    <button id="estopBtn" class="ctl danger" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      <span>หยุดฉุกเฉิน</span><small>Esc</small>
+    </button>
+  </div>
+
+  <div class="keys">
+    <span><kbd>W A S D</kbd> ขับ</span>
+    <span><kbd>↑ ↓</kbd> มุมกล้อง</span>
+    <span><kbd>1</kbd> มองพื้น <kbd>2</kbd> มองผนัง</span>
+  </div>
+
+  <section class="card recent">
+    <div class="card-head"><h2>จดล่าสุด</h2><span class="muted small">ส่งขึ้นระบบอัตโนมัติเมื่อมีอินเทอร์เน็ต</span></div>
+    <div id="recentList"></div>
+  </section>
+</main>
+
+<div class="overlay" id="modal" hidden>
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <img id="shotImg" class="shot" alt="ภาพที่ถ่ายไว้">
+      <div class="grow">
+        <div class="muted small" id="stepText">ขั้น 1 จาก 3</div>
+        <div class="title" id="modalTitle">มิเตอร์ชนิดไหน</div>
+      </div>
+      <button class="icon-btn" id="modalClose" type="button" aria-label="ปิด">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="steps" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <div id="stepType" class="type-grid">
+      <button class="type-btn" type="button" data-type="water">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/></svg>
+        <span>มิเตอร์น้ำ</span><small>กด 1</small>
+      </button>
+      <button class="type-btn" type="button" data-type="elec">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg>
+        <span>มิเตอร์ไฟ</span><small>กด 2</small>
+      </button>
+    </div>
+
+    <div id="stepRoom" hidden>
+      <div id="roomGrid" class="room-grid"></div>
+      <button class="btn small back" type="button" data-back="type">‹ ย้อนกลับ</button>
+    </div>
+
+    <form id="stepValue" hidden>
+      <button type="button" class="link-btn" id="retakeBtn">ถ่ายใหม่</button>
+      <div class="prev"><span id="prevLabel">ครั้งก่อน</span><b id="prevValue">—</b></div>
+      <label for="valueInput" class="muted small">เลขบนมิเตอร์</label>
+      <div class="digits-wrap">
+        <div class="digits" id="digits" aria-hidden="true"></div>
+        <input id="valueInput" type="text" inputmode="numeric" autocomplete="off" aria-describedby="feedback">
+      </div>
+      <div id="feedback" class="feedback">พิมพ์เลขตามภาพ</div>
+      <label class="check" id="rolloverRow" hidden><input type="checkbox" id="rolloverChk"> มิเตอร์วนรอบ (เริ่มนับใหม่จาก 0)</label>
+      <div class="row">
+        <button type="button" class="btn" data-back="room">ย้อนกลับ</button>
+        <button type="submit" class="btn primary grow" id="saveBtn" disabled>บันทึก</button>
+      </div>
+      <div id="saveError" class="feedback bad" hidden></div>
+    </form>
+  </section>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+<script src="/static/cockpit-logic.js"></script>
+<script src="/static/cockpit.js"></script>
+</body>
+</html>

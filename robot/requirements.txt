@@ -1,0 +1,8 @@
+flask>=3.0
+websockets>=12
+pyserial>=3.5
+requests>=2.31
+numpy
+# picamera2 + opencv on the Pi: sudo apt install python3-picamera2 python3-opencv
+# laptop testing only: opencv-python-headless
+tzdata  # needed on Windows for Asia/Bangkok time zone

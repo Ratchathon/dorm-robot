@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คำนวณค่าน้ำค่าไฟ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="narrow">
+  <header>
+    <a id="backLink" class="small" href="/" hidden>‹ กลับ</a>
+    <h1>คำนวณค่าน้ำค่าไฟ</h1>
+    <div class="muted">หน่วยที่ใช้ × ราคาต่อหน่วยตามสัญญา</div>
+  </header>
+
+  <div class="seg" role="group" aria-label="วิธีคำนวณ">
+    <button type="button" data-mode="units" aria-pressed="true">รู้หน่วยแล้ว</button>
+    <button type="button" data-mode="meter" aria-pressed="false">ใช้เลขมิเตอร์</button>
+  </div>
+
+  <section class="card calc-card" data-kind="elec">
+    <div class="top"><h2 class="row" data-icon="elec">ค่าไฟ</h2><b id="elec-total">—</b></div>
+    <div class="grid meter-only" hidden>
+      <div class="field"><label for="elec-prev">เลขเดือนก่อน</label><input class="input big" id="elec-prev" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label for="elec-curr">เลขเดือนนี้</label><input class="input big" id="elec-curr" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <div class="grid">
+      <div class="field units-only"><label for="elec-units">หน่วยที่ใช้</label><input class="input big" id="elec-units" inputmode="decimal" autocomplete="off" value="400"></div>
+      <div class="field"><label for="elec-price">บาท / หน่วย</label><input class="input big" id="elec-price" inputmode="decimal" autocomplete="off" value="7"></div>
+    </div>
+    <div class="formula" id="elec-formula">—</div>
+    <div class="note bad" id="elec-warn" hidden></div>
+  </section>
+
+  <section class="card calc-card" data-kind="water">
+    <div class="top"><h2 class="row" data-icon="water">ค่าน้ำ</h2><b id="water-total">—</b></div>
+    <div class="grid meter-only" hidden>
+      <div class="field"><label for="water-prev">เลขเดือนก่อน</label><input class="input big" id="water-prev" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label for="water-curr">เลขเดือนนี้</label><input class="input big" id="water-curr" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <div class="grid">
+      <div class="field units-only"><label for="water-units">หน่วยที่ใช้</label><input class="input big" id="water-units" inputmode="decimal" autocomplete="off"></div>
+      <div class="field"><label for="water-price">บาท / หน่วย</label><input class="input big" id="water-price" inputmode="decimal" autocomplete="off"></div>
+    </div>
+    <div class="formula" id="water-formula">—</div>
+    <div class="note bad" id="water-warn" hidden></div>
+  </section>
+
+  <section class="card summary grand">
+    <span>รวมทั้งหมด</span>
+    <b id="grand">—</b>
+  </section>
+  <div class="muted small">เป็นการประมาณเท่านั้น ยอดจริงดูได้จากลิงก์ห้องของคุณ</div>
+</main>
+<script src="/static/common.js"></script>
+<script src="/static/calc.js"></script>
+<script src="/static/calculator.js"></script>
+</body>
+</html>

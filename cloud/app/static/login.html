@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เข้าสู่ระบบผู้ดูแล</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="center">
+  <form class="card login" id="form">
+    <div class="logo" aria-hidden="true">ห</div>
+    <div>
+      <h1>ผู้ดูแลหอพัก</h1>
+      <div class="muted small">Teleoperated Cleaning Robot</div>
+    </div>
+    <div class="field">
+      <label for="password">รหัสผ่าน</label>
+      <input class="input" id="password" type="password" autocomplete="current-password" required autofocus>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn primary block" type="submit">เข้าสู่ระบบ</button>
+    <a class="small" href="/calculator">เครื่องคำนวณค่าน้ำค่าไฟ</a>
+  </form>
+</main>
+<script src="/static/common.js"></script>
+<script src="/static/login.js"></script>
+</body>
+</html>
