@@ -46,3 +46,17 @@ test("compare electricity with the previous month", () => {
   assert.equal(S.compareMonth(periods, "2026-09", "elec"), null);
   assert.equal(S.compareMonth(periods.slice(0, 1), "2026-09", "elec"), null);
 });
+
+test("room number check mirrors the server rule", () => {
+  assert.equal(S.cleanRoomNumber("  101A "), "101A");
+  assert.equal(S.cleanRoomNumber("ก-12/3"), "ก-12/3");
+  for (const bad of ["", "   ", "<b>", "1".repeat(11), "10 1"]) assert.equal(S.cleanRoomNumber(bad), null, bad);
+});
+
+test("delete unlocks only when the exact room number is typed", () => {
+  assert.equal(S.deleteUnlocked("101", "101"), true);
+  assert.equal(S.deleteUnlocked(" 101 ", "101"), true);
+  assert.equal(S.deleteUnlocked("10", "101"), false);
+  assert.equal(S.deleteUnlocked("", "101"), false);
+  assert.equal(S.deleteUnlocked("101a", "101A"), false);
+});

@@ -312,3 +312,72 @@ def test_security_headers(client):
     r = client.get("/calculator")
     assert r.headers["x-content-type-options"] == "nosniff"
     assert r.headers["x-frame-options"] == "DENY"
+
+
+# ---------------- edit / delete rooms ----------------
+
+def test_rename_room_keeps_link_and_readings(admin, client):
+    seed_month(admin, client)
+    rooms = {r["number"]: r for r in admin.get("/api/admin/rooms").json()["rooms"]}
+    r = admin.patch(f"/api/admin/rooms/{rooms['101']['id']}", json={"number": "101A"})
+    assert r.status_code == 200 and r.json()["number"] == "101A"
+    assert r.json()["token"] == rooms["101"]["token"]          # QR still works
+    data = client.get(f"/api/tenant/{rooms['101']['token']}").json()
+    assert data["room"] == "101A"
+    sep = next(p for p in data["periods"] if p["period"] == "2026-09")
+    assert sep["total"] == "593.00"
+    numbers = [x["number"] for x in admin.get("/api/admin/summary?period=2026-09").json()["rooms"]]
+    assert "101A" in numbers and "101" not in numbers
+
+
+def test_rename_room_validation(admin):
+    ids = add_rooms(admin, "101", "102")
+    rid = ids["101"]["id"]
+    assert admin.patch(f"/api/admin/rooms/{rid}", json={"number": "102"}).status_code == 409
+    for bad in ["", "  ", "<b>", "1" * 20, 101]:
+        assert admin.patch(f"/api/admin/rooms/{rid}", json={"number": bad}).status_code == 422
+    assert admin.patch(f"/api/admin/rooms/{rid}", json={"number": " 101 "}).json()["number"] == "101"  # same number, trimmed
+    assert admin.patch("/api/admin/rooms/9999", json={"number": "105"}).status_code == 404
+
+
+def test_robot_upload_to_renamed_room_is_rejected(admin, client):
+    rid = add_rooms(admin, "101")["101"]["id"]
+    admin.patch(f"/api/admin/rooms/{rid}", json={"number": "201"})
+    assert upload(client, uid(1), room="101").status_code == 422     # robot marks it rejected, stops retrying
+    assert upload(client, uid(2), room="201").status_code == 201
+
+
+def test_delete_room_needs_typed_confirmation(admin):
+    rid = add_rooms(admin, "101")["101"]["id"]
+    assert admin.request("DELETE", f"/api/admin/rooms/{rid}").status_code == 422
+    assert admin.request("DELETE", f"/api/admin/rooms/{rid}", json={"confirm": "102"}).status_code == 422
+    assert len(admin.get("/api/admin/rooms").json()["rooms"]) == 1
+
+
+def test_delete_room_removes_everything(admin, client):
+    seed_month(admin, client)
+    rooms = {r["number"]: r for r in admin.get("/api/admin/rooms").json()["rooms"]}
+    room = rooms["101"]
+    client.post(f"/api/tenant/{room['token']}/disputes", json={"period": "2026-09", "message": "เลขไม่ตรง"})
+    line = next(x for x in admin.get("/api/admin/summary?period=2026-09").json()["rooms"] if x["number"] == "101")
+    admin.patch(f"/api/admin/readings/{line['water']['id']}", json={"value": "0852"})   # creates an audit row
+
+    r = admin.request("DELETE", f"/api/admin/rooms/{room['id']}", json={"confirm": "101"})
+    assert r.status_code == 200 and r.json()["deleted"] == "101"
+    assert [x["number"] for x in admin.get("/api/admin/rooms").json()["rooms"]] == ["102", "103"]
+    assert client.get(f"/api/tenant/{room['token']}").status_code == 404
+    assert admin.get(f"/api/admin/readings/{line['water']['id']}/image").status_code == 404
+    assert all(d["room"] != "101" for d in admin.get("/api/admin/disputes").json()["disputes"])
+    numbers = [x["number"] for x in admin.get("/api/admin/summary?period=2026-09").json()["rooms"]]
+    assert "101" not in numbers and "102" in numbers
+    # same number can be added again and starts empty
+    new = admin.post("/api/admin/rooms", json={"number": "101"}).json()
+    assert new["token"] != room["token"]
+    again = next(x for x in admin.get("/api/admin/summary?period=2026-09").json()["rooms"] if x["number"] == "101")
+    assert again["water"]["status"] == "missing"
+
+
+def test_delete_room_errors(admin, client):
+    assert admin.request("DELETE", "/api/admin/rooms/9999", json={"confirm": "1"}).status_code == 404
+    rid = add_rooms(admin, "101")["101"]["id"]
+    assert client.request("DELETE", f"/api/admin/rooms/{rid}", json={"confirm": "101"}).status_code == 401
