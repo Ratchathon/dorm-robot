@@ -60,3 +60,14 @@ test("delete unlocks only when the exact room number is typed", () => {
   assert.equal(S.deleteUnlocked("", "101"), false);
   assert.equal(S.deleteUnlocked("101a", "101A"), false);
 });
+
+test("photo count for the zip button", () => {
+  const rows = [
+    { water: { has_image: true }, elec: { has_image: true } },
+    { water: { has_image: false }, elec: { status: "missing" } },
+    { water: { has_image: true }, elec: {} },
+  ];
+  assert.equal(S.photoCount(rows), 3);
+  assert.equal(S.photoCount([]), 0);
+  assert.equal(S.photoCount(null), 0);
+});

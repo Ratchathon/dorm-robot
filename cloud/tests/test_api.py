@@ -381,3 +381,45 @@ def test_delete_room_errors(admin, client):
     assert admin.request("DELETE", "/api/admin/rooms/9999", json={"confirm": "1"}).status_code == 404
     rid = add_rooms(admin, "101")["101"]["id"]
     assert client.request("DELETE", f"/api/admin/rooms/{rid}", json={"confirm": "101"}).status_code == 401
+
+
+# ---------------- monthly photo zip ----------------
+
+def zip_names(resp):
+    import io, zipfile
+    return zipfile.ZipFile(io.BytesIO(resp.content))
+
+
+def test_photo_zip_has_billing_photo_per_room_and_type(admin, client):
+    seed_month(admin, client)
+    r = admin.get("/api/admin/photos.zip?period=2026-09")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/zip"
+    assert "meter-photos-2026-09.zip" in r.headers["content-disposition"]
+    z = zip_names(r)
+    assert sorted(z.namelist()) == ["101_elec.jpg", "101_wt.jpg", "102_elec.jpg", "102_wt.jpg"]
+    assert z.read("101_wt.jpg") == JPEG
+
+
+def test_photo_zip_uses_latest_reading_of_the_month(admin, client):
+    seed_month(admin, client)
+    newer = b"\xff\xd8\xff\xe0" + b"N" * 50 + b"\xff\xd9"
+    upload(client, uid(500), room="101", meter_type="water", value="0860",
+           captured_at="2026-09-30T09:00:00+00:00", image=newer)
+    z = zip_names(admin.get("/api/admin/photos.zip?period=2026-09"))
+    assert z.read("101_wt.jpg") == newer
+
+
+def test_photo_zip_skips_deleted_and_cleans_names(admin, client):
+    add_rooms(admin, "A/1")
+    upload(client, uid(1), room="A/1", meter_type="elec", captured_at="2026-09-10T03:00:00+00:00")
+    line = admin.get("/api/admin/summary?period=2026-09").json()["rooms"][0]
+    assert zip_names(admin.get("/api/admin/photos.zip?period=2026-09")).namelist() == ["A-1_elec.jpg"]
+    admin.delete(f"/api/admin/readings/{line['elec']['id']}")
+    assert admin.get("/api/admin/photos.zip?period=2026-09").status_code == 404
+
+
+def test_photo_zip_errors(admin, client):
+    assert client.get("/api/admin/photos.zip?period=2026-09").status_code == 401
+    assert admin.get("/api/admin/photos.zip?period=2026-9").status_code == 422
+    assert admin.get("/api/admin/photos.zip?period=2026-09").status_code == 404   # no photos that month
