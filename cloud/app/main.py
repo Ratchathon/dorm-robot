@@ -21,7 +21,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -302,9 +302,7 @@ def create_app(settings: Settings) -> FastAPI:
     @app.post("/api/admin/rooms", status_code=201, dependencies=[Depends(require_admin)])
     async def create_room(request: Request, s=Depends(db)):
         body = await json_body(request)
-        number = str(body.get("number", "")).strip()
-        if not ROOM_RE.match(number):
-            fail(422, "number: 1-10 ตัว ใช้ตัวเลข ตัวอักษร - หรือ / เท่านั้น")
+        number = check_room_number(body.get("number", ""))
         room = Room(number=number, token=secrets.token_urlsafe(18))
         s.add(room)
         try:
@@ -313,6 +311,12 @@ def create_app(settings: Settings) -> FastAPI:
             s.rollback()
             fail(409, "มีห้องนี้อยู่แล้ว")
         return room_dict(room, request)
+
+    def check_room_number(value):
+        number = value.strip() if isinstance(value, str) else ""
+        if not ROOM_RE.match(number):
+            fail(422, "number: 1-10 ตัว ใช้ตัวเลข ตัวอักษร - หรือ / เท่านั้น")
+        return number
 
     def get_room(s, room_id):
         room = s.get(Room, room_id)
@@ -324,12 +328,40 @@ def create_app(settings: Settings) -> FastAPI:
     async def update_room(room_id: int, request: Request, s=Depends(db)):
         body = await json_body(request)
         room = get_room(s, room_id)
+        if "number" in body:
+            room.number = check_room_number(body["number"])
         if "active" in body:
             if not isinstance(body["active"], bool):
                 fail(422, "active: true/false")
             room.active = body["active"]
-        s.commit()
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            fail(409, "มีห้องนี้อยู่แล้ว")
         return room_dict(room, request)
+
+    @app.delete("/api/admin/rooms/{room_id}", dependencies=[Depends(require_admin)])
+    async def delete_room(room_id: int, request: Request, s=Depends(db)):
+        """Permanently removes the room with all its readings, photos, edit history and disputes."""
+        body = await json_body(request)
+        room = get_room(s, room_id)
+        if str(body.get("confirm", "")).strip() != room.number:
+            fail(422, "confirm: พิมพ์เลขห้องให้ตรงเพื่อยืนยันการลบ")
+        readings = list(s.scalars(select(Reading).where(Reading.room_id == room.id)))
+        ids = [r.id for r in readings]
+        if ids:
+            s.execute(delete(ReadingImage).where(ReadingImage.reading_id.in_(ids)))
+            s.execute(delete(ReadingEdit).where(ReadingEdit.reading_id.in_(ids)))
+            s.execute(delete(Reading).where(Reading.id.in_(ids)))
+        s.execute(delete(Dispute).where(Dispute.room_id == room.id))
+        number = room.number
+        s.delete(room)
+        s.commit()
+        for r in readings:  # photos saved on disk by older versions
+            if r.image_file and r.image_file != IMAGE_IN_DB:
+                (uploads / r.image_file).unlink(missing_ok=True)
+        return {"deleted": number}
 
     @app.post("/api/admin/rooms/{room_id}/new-link", dependencies=[Depends(require_admin)])
     async def new_link(room_id: int, request: Request, s=Depends(db)):
