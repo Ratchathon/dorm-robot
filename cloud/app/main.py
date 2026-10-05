@@ -12,6 +12,7 @@ import os
 import re
 import secrets
 import time
+import zipfile
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -496,17 +497,44 @@ def create_app(settings: Settings) -> FastAPI:
         s.commit()
         return {"id": reading.id}
 
-    def image_response(reading, s):
-        headers = {"Cache-Control": "private, max-age=3600"}
+    def image_bytes(reading, s):
+        """The photo of a reading, or None when it has none."""
         if reading.image_file == IMAGE_IN_DB:
             row = s.get(ReadingImage, reading.id)
-            if row is None:
-                fail(404, "no image")
-            return Response(row.data, media_type="image/jpeg", headers=headers)
+            return row.data if row else None
         path = uploads / reading.image_file if reading.image_file else None  # photos saved by older versions
-        if path is None or not path.exists():
+        return path.read_bytes() if path is not None and path.exists() else None
+
+    def image_response(reading, s):
+        data = image_bytes(reading, s)
+        if data is None:
             fail(404, "no image")
-        return FileResponse(path, media_type="image/jpeg", headers=headers)
+        return Response(data, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+
+    ZIP_SUFFIX = {"water": "wt", "elec": "elec"}
+
+    @app.get("/api/admin/photos.zip", dependencies=[Depends(require_admin)])
+    def photos_zip(period: str, s=Depends(db)):
+        """Billing photo of every room for one month: 101_wt.jpg, 101_elec.jpg, ..."""
+        try:
+            start, end = billing.period_bounds(period)
+        except ValueError as exc:
+            fail(422, str(exc))
+        start, end = to_db(start), to_db(end)
+        buf = io.BytesIO()
+        count = 0
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:  # jpegs are already compressed
+            for room in s.scalars(select(Room).order_by(Room.number)):
+                for t in METER_TYPES:
+                    reading = latest(s, room.id, t, before=end, since=start)
+                    data = image_bytes(reading, s) if reading else None
+                    if data:
+                        z.writestr(f"{room.number.replace('/', '-')}_{ZIP_SUFFIX[t]}.jpg", data)
+                        count += 1
+        if not count:
+            fail(404, "ไม่มีภาพมิเตอร์ในเดือนนี้")
+        return Response(buf.getvalue(), media_type="application/zip",
+                        headers={"Content-Disposition": f'attachment; filename="meter-photos-{period}.zip"'})
 
     # ---------------- admin: disputes ----------------
     @app.get("/api/admin/disputes", dependencies=[Depends(require_admin)])
