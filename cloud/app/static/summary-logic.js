@@ -66,5 +66,9 @@
     return String(typed == null ? "" : typed).trim() === number;
   }
 
-  return { roomStatus, filterRooms, filterCounts, averagePerRoom, compareMonth, cleanRoomNumber, deleteUnlocked };
+  function photoCount(rows) {
+    return (rows || []).reduce((n, r) => n + ["water", "elec"].filter((t) => r[t] && r[t].has_image).length, 0);
+  }
+
+  return { roomStatus, filterRooms, filterCounts, averagePerRoom, compareMonth, cleanRoomNumber, deleteUnlocked, photoCount };
 });

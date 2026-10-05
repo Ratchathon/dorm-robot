@@ -88,6 +88,9 @@
     const i = periods.indexOf(s.period);
     $("prevPeriod").disabled = i >= periods.length - 1;
     $("nextPeriod").disabled = i <= 0;
+    const photos = SummaryLogic.photoCount(s.rooms);
+    $("photosZip").disabled = photos === 0;
+    $("photosZip").textContent = photos ? "ดาวน์โหลดภาพ (" + photos + ")" : "ยังไม่มีภาพ";
     $("rateLine").textContent = s.rates.elec || s.rates.water
       ? "ไฟ " + (s.rates.elec || "—") + " · น้ำ " + (s.rates.water || "—") + " บาท/หน่วย" : "ยังไม่ได้ตั้งราคาต่อหน่วย";
 
@@ -248,6 +251,23 @@
     }).join(",")).join("\r\n");
     const a = el("a", { href: URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" })), download: "meters-" + summary.period + ".csv" });
     document.body.append(a); a.click(); a.remove();
+  });
+  $("photosZip").addEventListener("click", async () => {
+    const b = $("photosZip"), label = b.textContent, period = summary.period;
+    b.disabled = true; b.textContent = "กำลังเตรียมไฟล์…";
+    try {
+      const res = await fetch("/api/admin/photos.zip?period=" + encodeURIComponent(period), { credentials: "same-origin" });
+      if (!res.ok) {
+        let msg = "HTTP " + res.status;
+        try { msg = (await res.json()).detail || msg; } catch (e) { /* not json */ }
+        throw new Error(msg);
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = el("a", { href: url, download: "meter-photos-" + period + ".zip" });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (err) { toast(err.message); }
+    finally { b.disabled = false; b.textContent = label; }
   });
   $("print").addEventListener("click", () => window.print());
 
