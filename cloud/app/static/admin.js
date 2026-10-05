@@ -281,7 +281,45 @@
       confirmButton("ผู้เช่าใหม่ย้ายเข้า", "ซ่อนภาพเก่าจากลิงก์ใหม่ · กดยืนยัน", "", () => newLink(r, true)),
       el("div", { class: "muted small", text: "ผู้เช่าใหม่: ลิงก์เดิมใช้ไม่ได้ และลิงก์ใหม่จะไม่เห็นภาพและยอดของผู้เช่าคนก่อน" }),
       el("button", { class: "btn " + (r.active ? "danger" : ""), type: "button", text: r.active ? "ปิดใช้งานห้องนี้" : "เปิดใช้งานห้องนี้",
-        onclick: async () => { await api("/api/admin/rooms/" + r.id, { method: "PATCH", json: { active: !r.active } }); loadRooms(r.id); } }));
+        onclick: async () => { await api("/api/admin/rooms/" + r.id, { method: "PATCH", json: { active: !r.active } }); loadRooms(r.id); } }),
+      editRoomForm(r),
+      deleteRoomBox(r));
+  }
+
+  function editRoomForm(r) {
+    const input = el("input", { class: "input", id: "editRoomNumber", value: r.number, maxlength: "10", required: true, autocomplete: "off" });
+    return el("form", { class: "stack-sm edit-room", onsubmit: async (e) => {
+      e.preventDefault();
+      const number = SummaryLogic.cleanRoomNumber(input.value);
+      if (!number) { toast("เลขห้อง 1-10 ตัว ใช้ตัวเลข ตัวอักษร - หรือ / เท่านั้น"); input.focus(); return; }
+      if (number === r.number) { toast("เลขห้องเหมือนเดิม"); return; }
+      try {
+        await api("/api/admin/rooms/" + r.id, { method: "PATCH", json: { number } });
+        toast("เปลี่ยนห้อง " + r.number + " เป็น " + number + " แล้ว · ลิงก์และ QR เดิมยังใช้ได้");
+        loadRooms(r.id);
+      } catch (err) { toast(err.message); }
+    } },
+      el("label", { class: "label", for: "editRoomNumber", text: "แก้ไขเลขห้อง" }),
+      el("div", { class: "row" }, input, el("button", { class: "btn", type: "submit", text: "บันทึก" })));
+  }
+
+  function deleteRoomBox(r) {
+    const input = el("input", { class: "input", id: "deleteRoomConfirm", placeholder: "พิมพ์ " + r.number + " เพื่อยืนยัน", maxlength: "10", autocomplete: "off" });
+    const btn = el("button", { class: "btn danger", type: "button", text: "ลบห้อง " + r.number + " ถาวร", disabled: true });
+    input.addEventListener("input", () => { btn.disabled = !SummaryLogic.deleteUnlocked(input.value, r.number); });
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await api("/api/admin/rooms/" + r.id, { method: "DELETE", json: { confirm: input.value.trim() } });
+        toast("ลบห้อง " + r.number + " แล้ว");
+        $("roomPanel").replaceChildren(el("div", { class: "muted small", text: "เลือกห้องเพื่อดู QR และจัดการลิงก์" }));
+        loadRooms();
+      } catch (err) { toast(err.message); btn.disabled = false; }
+    });
+    return el("div", { class: "danger-zone stack-sm" },
+      el("label", { class: "label", for: "deleteRoomConfirm", text: "ลบห้อง" }),
+      el("div", { class: "muted small", text: "ลบค่ามิเตอร์ ภาพ ประวัติการแก้ไข และเรื่องแจ้งของห้องนี้ทั้งหมด กู้คืนไม่ได้ · ลิงก์และ QR ของห้องนี้จะใช้ไม่ได้" }),
+      input, btn);
   }
 
   async function newLink(r, newTenant) {

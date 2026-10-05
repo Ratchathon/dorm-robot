@@ -55,5 +55,16 @@
     return TYPE[kind] + "ใช้" + (diff < 0 ? "น้อยลง " : "มากขึ้น ") + Math.abs(diff) + " หน่วยจากเดือนก่อน";
   }
 
-  return { roomStatus, filterRooms, filterCounts, averagePerRoom, compareMonth };
+  // same rule as ROOM_RE on the server; returns the trimmed number or null
+  const ROOM_RE = /^[0-9A-Za-z\u0E00-\u0E7F/-]{1,10}$/;
+  function cleanRoomNumber(value) {
+    const v = String(value == null ? "" : value).trim();
+    return ROOM_RE.test(v) ? v : null;
+  }
+
+  function deleteUnlocked(typed, number) {
+    return String(typed == null ? "" : typed).trim() === number;
+  }
+
+  return { roomStatus, filterRooms, filterCounts, averagePerRoom, compareMonth, cleanRoomNumber, deleteUnlocked };
 });
