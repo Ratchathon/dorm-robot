@@ -36,19 +36,24 @@
       el("div", { class: "ph", text: line.id ? "ผู้ดูแลบันทึกเอง (ไม่มีภาพ)" : "ยังไม่มีภาพ" }), caption);
   }
 
+  let chartKind = "elec";   // which meter the history chart shows
+
   function historyChart() {
-    const months = data.periods.slice(0, 6).reverse();
-    const vals = months.map((p) => (p.elec.status === "ok" ? p.elec.units : 0));
-    const max = Math.max(1, ...vals);
-    const bars = el("div", { class: "bars", role: "img", "aria-label": "หน่วยไฟย้อนหลัง " + months.length + " เดือน" });
-    months.forEach((p, i) => {
+    const items = S.historyBars(data.periods, chartKind);
+    const max = Math.max(1, ...items.map((b) => b.units || 0));
+    const bars = el("div", { class: "bars", role: "img", "aria-label": "หน่วย" + TYPE[chartKind] + "ย้อนหลัง " + items.length + " เดือน" });
+    items.forEach((b) => {
       const bar = el("i");
-      bar.style.height = Math.max(4, Math.round((vals[i] / max) * 90)) + "px";
-      bars.append(el("div", { class: "col" + (p.period === selected ? " now" : "") },
-        el("b", { text: p.elec.status === "ok" ? vals[i] : "–" }), bar, el("span", { text: periodLabel(p.period, true) })));
+      bar.style.height = Math.max(4, Math.round(((b.units || 0) / max) * 90)) + "px";
+      bars.append(el("div", { class: "col" + (b.period === selected ? " now" : "") },
+        el("b", { text: b.units != null ? b.units : "–" }), bar, el("span", { text: periodLabel(b.period, true) })));
     });
+    const pick = (kind) => el("button", { type: "button", "aria-pressed": String(chartKind === kind), text: TYPE[kind],
+      onclick: () => { chartKind = kind; render(); } });
     return el("section", { class: "card pad stack" },
-      el("div", { class: "row" }, el("h2", { class: "grow", text: "ไฟย้อนหลัง" }), el("span", { class: "muted small", text: "หน่วย / เดือน" })), bars);
+      el("div", { class: "row" }, el("h2", { class: "grow", text: "ย้อนหลัง" }),
+        el("div", { class: "seg chart-pick", role: "group", "aria-label": "เลือกกราฟ" }, pick("elec"), pick("water"))),
+      bars, el("span", { class: "muted small", text: "หน่วย" + TYPE[chartKind] + " / เดือน" }));
   }
 
   function disputeForm(p) {

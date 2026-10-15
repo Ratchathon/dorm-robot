@@ -173,6 +173,8 @@ textarea.input { min-height: 88px; resize: vertical; }
 .bars .col i { display: block; width: 100%; max-width: 30px; border-radius: 10px; background: var(--accent-bar); }
 .bars .col.now i { background: var(--accent); }
 .bars .col span { font-size: 11px; color: var(--muted); }
+.seg.chart-pick { width: 132px; flex-shrink: 0; }
+.seg.chart-pick button { min-height: 32px; font-size: 13px; }
 .icon { width: 16px; height: 16px; flex-shrink: 0; }
 .calc-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
 .calc-card .top { display: flex; justify-content: space-between; align-items: center; }
